@@ -8,15 +8,15 @@ int main() {
     auto config = Config("0.0.0.0", 8181);
 
     Server(config)
-            .addRoute("/", HttpMethod::Get, [](auto &request) {
+            .addRoute("/foo", HttpMethod::Get, [](auto &request) {
                 return HttpResponse {HttpStatus::Code::Ok}
-                        .setBody("Root")
-                        .addHeader("X_My_Header", "HeaderValue")
-                        .addHeader("X_My_Other_Header", "OtherHeaderValue");
+                        .setBody("hello path GET foo")
+                        .addHeader("hi", "there");
             })
-            .addRoute("/demo", HttpMethod::Get, [](auto &request) {
+            .addRoute("/foo", HttpMethod::Post, [](auto &request) {
                 return HttpResponse {HttpStatus::Code::Ok}
-                        .setBody("Demo");
+                        .setBody("hello path POST foo")
+                        .addHeader("hi", "there");
             })
             .addRoute("/json", HttpMethod::Get, [](auto &request) {
                 return HttpResponse {HttpStatus::Code::Ok}

@@ -1,13 +1,16 @@
 #include <evdns.h>
 #include <iostream>
+#include <memory>
 #include <evhttp.h>
 #include "LEhttp.h"
+#include "Server.h"
+
 
 using namespace lehttp;
 
 Server::Server() : Server(Config()) {}
 
-Server::Server(Config cfg) : config(std::move(cfg)) {
+Server::Server(Config cfg) : config(std::move(cfg)), handlers() {
     evBase = event_base_new();
     if (!evBase) {
         std::cout << "Could not create and event_base - exiting" << std::endl;
@@ -19,15 +22,43 @@ Server::Server(Config cfg) : config(std::move(cfg)) {
         std::cout << "Could not create and evhttp - exiting" << std::endl;
         throw;
     }
+
+    notFoundHandler = std::make_shared<Handler>([](auto &request) {
+        return HttpResponse {HttpStatus::Code::NotFound};
+    });
 }
 
-void handleNotFound(struct evhttp_request *req, void *) {
-    struct evbuffer *evb = evbuffer_new();
-    evhttp_send_reply(req, HttpStatus::NotFound, HttpStatus::reasonPhrase(HttpStatus::NotFound).c_str(), evb);
+
+HttpMethod Server::getMethod(struct evhttp_request *req) {
+    switch (evhttp_request_get_command(req)) {
+        case EVHTTP_REQ_GET: return HttpMethod::Get;
+        case EVHTTP_REQ_POST: return HttpMethod::Post;
+        case EVHTTP_REQ_HEAD: return HttpMethod::Head;
+        case EVHTTP_REQ_PUT: return HttpMethod::Put;
+        case EVHTTP_REQ_DELETE: return HttpMethod::Delete;
+        case EVHTTP_REQ_OPTIONS: return HttpMethod::Options;
+        case EVHTTP_REQ_TRACE: return HttpMethod::Trace;
+        case EVHTTP_REQ_CONNECT: return HttpMethod::Connect;
+        case EVHTTP_REQ_PATCH: return HttpMethod::Patch;
+        default: return HttpMethod::Get;
+    }
 }
 
-void handleRequest(struct evhttp_request *req, void *arg) {
-    auto handler = *reinterpret_cast<Handler *>(arg);
+std::shared_ptr<Handler> Server::getHandler(struct evhttp_request *req) {
+    std::string uri = evhttp_request_get_uri(req);
+    std::string sig = uri + "_" + httpMethodString(getMethod(req));
+    auto got = handlers.find(sig);
+    if (got == handlers.end()) {
+        return notFoundHandler;
+    } else {
+        return got->second;
+    }
+}
+
+void Server::handleRequest(struct evhttp_request *req, void *thiz) {
+    auto server = reinterpret_cast<Server *>(thiz);
+    auto handler = *server->getHandler(req);
+
     auto request = HttpRequest();
     auto response = handler(request);
     struct evbuffer *evb = evbuffer_new();
@@ -42,13 +73,14 @@ void handleRequest(struct evhttp_request *req, void *arg) {
 
 Server &Server::addRoute(std::string const &routePattern,
                          HttpMethod const &method,
-                         Handler handler) {
-    evhttp_set_cb(http, routePattern.c_str(), handleRequest, (void *) &handler);
+                         Handler const &handler) {
+    std::string sig = routePattern + "_" + httpMethodString(method);
+    handlers.emplace(sig, std::make_shared<Handler>(handler));
     return *this;
 }
 
 void Server::listenAndServe() {
-    evhttp_set_gencb(http, handleNotFound, nullptr);
+    evhttp_set_gencb(http, handleRequest, this);
 
     httpBoundSocket = evhttp_bind_socket_with_handle(http, config.ipAddress.c_str(), config.port);
     if (!httpBoundSocket) {
