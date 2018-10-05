@@ -1,6 +1,7 @@
 #pragma once
 
-#include "XConfig.h"
+#include <functional>
+#include "Config.h"
 #include "HttpMethod.h"
 #include "HttpRequest.h"
 #include "HttpResponse.h"
@@ -14,7 +15,7 @@ namespace lehttp {
     public:
         Server();
 
-        explicit Server(XConfig config);
+        explicit Server(Config config);
 
         virtual ~Server();
 
@@ -25,7 +26,7 @@ namespace lehttp {
                          Handler handler);
 
     private:
-        XConfig const config;
+        Config const config;
         struct event_base *evBase = nullptr;
         struct evhttp *http = nullptr;
         struct evhttp_bound_socket *httpBoundSocket = nullptr;

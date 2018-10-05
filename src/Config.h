@@ -4,9 +4,9 @@
 
 namespace lehttp {
 
-    class XConfig {
+    class Config {
     public:
-        explicit XConfig(char const *ipAddress = "0.0.0.0",
+        explicit Config(char const *ipAddress = "0.0.0.0",
                          uint16_t const port = 8080) : ipAddress(ipAddress), port(port) {}
 
         std::string const ipAddress;

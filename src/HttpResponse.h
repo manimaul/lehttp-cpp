@@ -23,15 +23,18 @@ namespace lehttp {
             return body;
         }
 
-        HttpResponse &setBody(const std::string &body) {
+        HttpResponse &setBody(std::string const &body) {
             HttpResponse::body = body;
             return *this;
         }
 
-        HttpResponse &addHeader(std::string key, std::string value) {
-            auto header = std::pair<std::string, std::string>(std::move(key), std::move(value));
-            headers.insert(header);
+        HttpResponse &addHeader(std::string const &key, std::string const &value) {
+            headers.emplace(key, value);
             return *this;
+        }
+
+        HttpResponse &contentTypeJson() {
+            return addHeader("Content-Type", "application/json");
         }
 
     private:

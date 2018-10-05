@@ -10,7 +10,7 @@ add_executable(lehttp
         src/main.cpp
         src/Server.cpp
         src/Server.h
-        src/XConfig.h
+        src/Config.h
         src/LEhttp.h
         src/HttpMethod.h
         src/HttpStatus.h

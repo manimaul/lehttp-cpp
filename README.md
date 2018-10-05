@@ -4,7 +4,7 @@
 
 Example:
 ```cpp
-auto config = XConfig("0.0.0.0", 8181);
+auto config = Config("0.0.0.0", 8181);
 Server(config)
     .addRoute("/", HttpMethod::Get, [](auto &request) {
         return HttpResponse {HttpStatus::Code::Ok, "Root Route"};
