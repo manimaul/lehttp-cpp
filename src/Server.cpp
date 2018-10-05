@@ -22,10 +22,6 @@ Server::Server(Config cfg) : config(std::move(cfg)), handlers() {
         std::cout << "Could not create and evhttp - exiting" << std::endl;
         throw;
     }
-
-    notFoundHandler = std::make_shared<Handler>([](auto &request) {
-        return HttpResponse {HttpStatus::Code::NotFound};
-    });
 }
 
 
@@ -44,43 +40,53 @@ HttpMethod Server::getMethod(struct evhttp_request *req) {
     }
 }
 
-std::shared_ptr<Handler> Server::getHandler(struct evhttp_request *req) {
+void Server::handleNotFound(struct evhttp_request *req, void *) {
     std::string uri = evhttp_request_get_uri(req);
-    std::string sig = uri + "_" + httpMethodString(getMethod(req));
-    auto got = handlers.find(sig);
-    if (got == handlers.end()) {
-        return notFoundHandler;
-    } else {
-        return got->second;
-    }
+
+    struct evbuffer *evb = evbuffer_new();
+    evhttp_send_reply(req, HttpStatus::NotFound, HttpStatus::reasonPhrase(HttpStatus::NotFound).c_str(), evb);
 }
 
-void Server::handleRequest(struct evhttp_request *req, void *thiz) {
-    auto server = reinterpret_cast<Server *>(thiz);
-    auto handler = *server->getHandler(req);
-
-    auto request = HttpRequest();
-    auto response = handler(request);
-    struct evbuffer *evb = evbuffer_new();
-    //todo: stream response with evbuffer
-    evbuffer_add_printf(evb, "%s", response.getBody().c_str());
-    struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
-    for (auto const &pair : response.getHeaders()) {
-        evhttp_add_header(headers, pair.first.c_str(), pair.second.c_str());
+void Server::handleRequest(struct evhttp_request *req, void *arg) {
+    auto pathHandlers = reinterpret_cast<std::unordered_map<HttpMethod, Handler> *>(arg);
+    auto got = pathHandlers->find(getMethod(req));
+    if (got == pathHandlers->end()) {
+        handleNotFound(req, arg);
+    } else {
+        auto request = HttpRequest();
+        auto handler = got->second;
+        auto response = handler(request);
+        struct evbuffer *evb = evbuffer_new();
+        //todo: stream response with evbuffer
+        evbuffer_add_printf(evb, "%s", response.getBody().c_str());
+        struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
+        auto h = response.getHeaders();
+        for (auto const &pair : h) {
+            evhttp_add_header(headers, pair.first.c_str(), pair.second.c_str());
+        }
+        evhttp_send_reply(req, response.status, HttpStatus::reasonPhrase(response.status).c_str(), evb);
     }
-    evhttp_send_reply(req, response.status, HttpStatus::reasonPhrase(response.status).c_str(), evb);
 }
 
 Server &Server::addRoute(std::string const &routePattern,
                          HttpMethod const &method,
                          Handler const &handler) {
-    std::string sig = routePattern + "_" + httpMethodString(method);
-    handlers.emplace(sig, std::make_shared<Handler>(handler));
+    auto got = handlers.find(routePattern);
+    if (got == handlers.end()) {
+        auto map = std::make_shared<std::unordered_map<HttpMethod, Handler>>();
+        map->emplace(method, handler);
+        handlers.emplace(routePattern, map);
+        evhttp_set_cb(http, routePattern.c_str(), handleRequest, (void *) map.get());
+    } else {
+        auto map = got->second;
+        auto pair = map->emplace(method, handler);
+        evhttp_set_cb(http, routePattern.c_str(), handleRequest, (void *) map.get());
+    }
     return *this;
 }
 
 void Server::listenAndServe() {
-    evhttp_set_gencb(http, handleRequest, this);
+    evhttp_set_gencb(http, handleNotFound, nullptr);
 
     httpBoundSocket = evhttp_bind_socket_with_handle(http, config.ipAddress.c_str(), config.port);
     if (!httpBoundSocket) {

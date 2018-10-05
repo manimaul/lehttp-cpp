@@ -31,12 +31,13 @@ namespace lehttp {
         struct event_base *evBase = nullptr;
         struct evhttp *http = nullptr;
         struct evhttp_bound_socket *httpBoundSocket = nullptr;
-        std::unordered_map<std::string, std::shared_ptr<Handler>> handlers;
-        std::shared_ptr<Handler> notFoundHandler;
+        std::unordered_map<std::string, std::shared_ptr<std::unordered_map<HttpMethod, Handler>>> handlers;
 
-        HttpMethod getMethod(struct evhttp_request *req);
-        std::shared_ptr<Handler> getHandler(struct evhttp_request *req);
+        static HttpMethod getMethod(struct evhttp_request *req);
+
         static void handleRequest(struct evhttp_request *req, void *);
+
+        static void handleNotFound(struct evhttp_request *req, void *);
     };
 
 }
