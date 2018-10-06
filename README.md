@@ -20,6 +20,10 @@ Server(config)
 
 ### Getting Started
 
+```bash 
+git submodule init --update
+```
+
 Install Dependencies MacOS
 ```bash
 brew install cmake
@@ -39,11 +43,19 @@ popd
 export PATH="/opt/cmake-3.12.2-Linux-x86_64/bin/:$PATH"
 ```
 
-Build and Run
+Build And Install
 ```bash
 mkdir build && cd build
 cmake ..
 make
-./lehttp
+sudo make install
+```
+
+Build And Run Unit Tests
+```bash 
+mkdir build && cd build
+cmake ..
+make
+./runUnitTests
 ```
 

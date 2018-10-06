@@ -47,6 +47,7 @@ CTestTestfile.cmake
 # CMake
 cmake-build-debug/
 cmake-build-release/
+build/
 
 ## File-based project format:
 *.iws

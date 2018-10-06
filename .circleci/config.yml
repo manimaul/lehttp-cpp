@@ -8,7 +8,12 @@ jobs:
     - run:
         name: Build
         command: |
+          git submodule update --init --recursive
           mkdir build
-          cd build
+          pushd build
           cmake ..
           make
+          popd
+      - run:
+          name: GTests
+          command: ./build/runUnitTests
