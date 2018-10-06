@@ -1,0 +1,14 @@
+version: 2
+jobs:
+  build:
+    docker:
+    - image: manimaul/libevent-builder
+    steps:
+    - checkout
+    - run:
+        name: Build
+        command: |
+          mkdir build
+          cd build
+          cmake ..
+          make
