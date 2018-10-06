@@ -17,5 +17,5 @@ FROM debian:stretch-slim
 RUN apt-get update && \
     apt-get install -y libevent-2.0-5 libevent-openssl-2.0-5 libevent-extra-2.0-5 libevent-pthreads-2.0-5
 #    libevent-openssl
-COPY --from=builder /build/_build/lehttp /usr/local/bin/
+COPY --from=builder /build.old /usr/local/bin/
 CMD lehttp

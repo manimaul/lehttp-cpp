@@ -3,11 +3,16 @@ project(lehttp)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(LibEvent REQUIRED)
-add_subdirectory(src/tests)
 
-add_executable(lehttp
-        src/main.cpp
+find_package(LibEvent REQUIRED)
+
+if (DEFINED ENV{GTEST})
+    message("including tests")
+    add_subdirectory(src/tests)
+endif()
+
+add_library(lehttp SHARED
+#        src/main.cpp
         src/Server.cpp
         src/Server.h
         src/Config.h
@@ -18,3 +23,5 @@ add_executable(lehttp
         src/HttpRequest.h)
 
 target_link_libraries(lehttp ${LIBEVENT_LIBRARIES})
+install(TARGETS lehttp DESTINATION lib)
+

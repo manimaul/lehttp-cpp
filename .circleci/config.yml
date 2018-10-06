@@ -11,9 +11,9 @@ jobs:
           git submodule update --init --recursive
           mkdir build
           pushd build
-          cmake ..
-          make
+          GTEST=1 cmake ..
+          make install
           popd
     - run:
         name: GTests
-        command: ./build/runUnitTests
+        command: /usr/local/bin/runUnitTests
