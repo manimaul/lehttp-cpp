@@ -2,26 +2,34 @@ cmake_minimum_required(VERSION 3.9)
 project(lehttp)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+# Find LibEvent
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(LibEvent REQUIRED)
 
+# Include Google Tests
 if (DEFINED ENV{GTEST})
     message("including tests")
-    add_subdirectory(src/tests)
+    add_subdirectory(tests)
 endif()
 
-add_library(lehttp SHARED
-#        src/main.cpp
-        src/Server.cpp
-        src/Server.h
-        src/Config.h
-        src/LEhttp.h
-        src/HttpMethod.h
-        src/HttpStatus.h
-        src/HttpResponse.h
-        src/HttpRequest.h)
+# Setup Library
+add_library(lehttp SHARED lehttp/Server.cpp)
+
+include_directories(lehttp/include)
+
 
 target_link_libraries(lehttp ${LIBEVENT_LIBRARIES})
-install(TARGETS lehttp DESTINATION lib)
 
+install(TARGETS lehttp
+        LIBRARY DESTINATION lib)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/lehttp/include/
+        DESTINATION include/lehttp
+        FILES_MATCHING PATTERN "*.h*")
+
+if (DEFINED ENV{LE_EXAMPLE})
+    add_executable(lehttp_example example/main.cpp)
+    target_link_libraries(lehttp_example lehttp)
+    target_include_directories(lehttp_example PRIVATE lehttp/include)
+endif()

@@ -53,9 +53,11 @@ sudo make install
 
 Build And Run Unit Tests
 ```bash 
-mkdir build && cd build
-cmake ..
-make
-./runUnitTests
+mkdir -p build && \
+pushd build && \
+GTEST=1 cmake .. && \
+make && \
+./runUnitTests && \
+popd
 ```
 
