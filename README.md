@@ -45,10 +45,12 @@ export PATH="/opt/cmake-3.12.2-Linux-x86_64/bin/:$PATH"
 
 Build And Install
 ```bash
-mkdir build && cd build
-cmake ..
-make
-sudo make install
+mkdir -p build && \
+pushd build && \
+cmake .. && \
+make && \
+sudo make install && \
+popd
 ```
 
 Build And Run Unit Tests

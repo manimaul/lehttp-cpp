@@ -8,24 +8,7 @@
 
 using namespace lehttp;
 
-Server::Server() : Server(Config()) {}
-
-Server::Server(Config cfg) : config(std::move(cfg)), handlers() {
-    evBase = event_base_new();
-    if (!evBase) {
-        std::cout << "Could not create and event_base - exiting" << std::endl;
-        throw;
-    }
-
-    http = evhttp_new(evBase);
-    if (!http) {
-        std::cout << "Could not create and evhttp - exiting" << std::endl;
-        throw;
-    }
-}
-
-
-HttpMethod Server::getMethod(struct evhttp_request *req) {
+HttpMethod getMethod(struct evhttp_request *req) {
     switch (evhttp_request_get_command(req)) {
         case EVHTTP_REQ_GET: return HttpMethod::Get;
         case EVHTTP_REQ_POST: return HttpMethod::Post;
@@ -40,20 +23,21 @@ HttpMethod Server::getMethod(struct evhttp_request *req) {
     }
 }
 
-void Server::handleNotFound(struct evhttp_request *req, void *) {
+void handleNotFound(struct evhttp_request *req, void *) {
     std::string uri = evhttp_request_get_uri(req);
 
     struct evbuffer *evb = evbuffer_new();
     evhttp_send_reply(req, HttpStatus::NotFound, HttpStatus::reasonPhrase(HttpStatus::NotFound).c_str(), evb);
 }
 
-void Server::handleRequest(struct evhttp_request *req, void *arg) {
+void handleRequest(struct evhttp_request *req, void *arg) {
     auto pathHandlers = reinterpret_cast<std::unordered_map<HttpMethod, Handler> *>(arg);
-    auto got = pathHandlers->find(getMethod(req));
+    auto method = getMethod(req);
+    auto got = pathHandlers->find(method);
     if (got == pathHandlers->end()) {
         handleNotFound(req, arg);
     } else {
-        auto request = HttpRequest();
+        auto request = HttpRequest(method, req);
         auto handler = got->second;
         auto response = handler(request);
         struct evbuffer *evb = evbuffer_new();
@@ -65,6 +49,23 @@ void Server::handleRequest(struct evhttp_request *req, void *arg) {
             evhttp_add_header(headers, pair.first.c_str(), pair.second.c_str());
         }
         evhttp_send_reply(req, response.status, HttpStatus::reasonPhrase(response.status).c_str(), evb);
+        evbuffer_free(evb);
+    }
+}
+
+Server::Server() : Server(Config()) {}
+
+Server::Server(Config cfg) : config(std::move(cfg)), handlers() {
+    evBase = event_base_new();
+    if (!evBase) {
+        std::cout << "Could not create and event_base - exiting" << std::endl;
+        throw;
+    }
+
+    http = evhttp_new(evBase);
+    if (!http) {
+        std::cout << "Could not create and evhttp - exiting" << std::endl;
+        throw;
     }
 }
 
@@ -87,7 +88,8 @@ Server &Server::addRoute(std::string const &routePattern,
 
 void Server::listenAndServe() {
     evhttp_set_gencb(http, handleNotFound, nullptr);
-
+    evhttp_set_max_headers_size(http, config.maxContentLength);
+    evhttp_set_max_body_size(http, config.maxContentLength);
     httpBoundSocket = evhttp_bind_socket_with_handle(http, config.ipAddress.c_str(), config.port);
     if (!httpBoundSocket) {
         std::cout << "Could not bind to port: " << config.port << " - exiting" << std::endl;
