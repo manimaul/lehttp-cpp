@@ -64,14 +64,21 @@ namespace lehttp {
             return params;
         }
 
-        std::string const &getBody() {
-            //todo: (WK)
-            throw;
+        std::string getBody() {
+            struct evbuffer *buf = evhttp_request_get_input_buffer(req);
+            size_t size = evbuffer_get_length(buf);
+            char* data = nullptr;
+            data = static_cast<char *>(alloca(size + 1));
+            data[size] = 0;
+            evbuffer_copyout(buf, data, size);
+            std::string retVal = std::string(data);
+            return retVal;
         }
 
         HttpRequest &setBody(std::string const &body) {
+            throw;
             //todo: (WK)
-            return *this;
+            //return *this;
         }
 
         HttpRequest &addHeader(std::string const &key, std::string const &value) {

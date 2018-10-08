@@ -18,6 +18,7 @@ int main() {
                         .addHeader("hi", "there");
             })
             .addRoute("/foo", HttpMethod::Post, [](auto &request) {
+                auto body = request.getBody();
                 return HttpResponse {HttpStatus::Code::Ok}
                         .setBody("hello path POST foo")
                         .addHeader("hi", "there");
