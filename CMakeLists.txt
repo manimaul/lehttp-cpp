@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 # Find LibEvent
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(LibEvent REQUIRED)
+find_package(NGHttp2 REQUIRED)
 
 # Include Google Tests
 if (DEFINED ENV{GTEST})
@@ -14,12 +15,11 @@ if (DEFINED ENV{GTEST})
 endif()
 
 # Setup Library
-add_library(lehttp SHARED lehttp/Server.cpp)
+add_library(lehttp SHARED lehttp/Server.cpp lehttp/libevent-server.c)
 
 include_directories(lehttp/include)
 
-
-target_link_libraries(lehttp ${LIBEVENT_LIBRARIES})
+target_link_libraries(lehttp ${LIBEVENT_LIBRARIES} ${NGHTTP2_LIBRARIES})
 
 install(TARGETS lehttp
         LIBRARY DESTINATION lib)
