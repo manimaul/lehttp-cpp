@@ -28,6 +28,7 @@ void handleNotFound(struct evhttp_request *req, void *) {
 
     struct evbuffer *evb = evbuffer_new();
     evhttp_send_reply(req, HttpStatus::NotFound, HttpStatus::reasonPhrase(HttpStatus::NotFound).c_str(), evb);
+    evbuffer_free(evb);
 }
 
 void handleRequest(struct evhttp_request *req, void *arg) {

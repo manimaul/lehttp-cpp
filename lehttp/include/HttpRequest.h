@@ -64,15 +64,17 @@ namespace lehttp {
             return params;
         }
 
-        std::string getBody() {
-            struct evbuffer *buf = evhttp_request_get_input_buffer(req);
-            size_t size = evbuffer_get_length(buf);
-            char* data = nullptr;
-            data = static_cast<char *>(alloca(size + 1));
-            data[size] = 0;
-            evbuffer_copyout(buf, data, size);
-            std::string retVal = std::string(data);
-            return retVal;
+        std::string const &getBody() {
+            if (body.length() == 0) {
+                struct evbuffer *buf = evhttp_request_get_input_buffer(req);
+                size_t size = evbuffer_get_length(buf);
+                char* data = nullptr;
+                data = static_cast<char *>(alloca(size + 1));
+                data[size] = 0;
+                evbuffer_copyout(buf, data, size);
+                body = std::string(data);
+            }
+            return body;
         }
 
         HttpRequest &setBody(std::string const &body) {
@@ -94,5 +96,6 @@ namespace lehttp {
     private:
         struct evhttp_request *req;
         HttpMethod method;
+        std::string body = {};
     };
 }
